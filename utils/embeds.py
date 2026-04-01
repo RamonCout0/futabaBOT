@@ -107,6 +107,9 @@ def evento_embed(
 
     if banner_url and _is_image_url(banner_url):
         em.set_image(url=banner_url)
+
+    em.add_field(
+        name=f"{Icon.CALENDARIO}  Início",
         value=f"```\n{data_inicio}\n```",
         inline=True,
     )
