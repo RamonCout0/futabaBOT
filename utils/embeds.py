@@ -67,6 +67,17 @@ def _now_ts() -> datetime:
     return datetime.now(tz=timezone.utc)
 
 
+# ═══════════════════  VALIDAÇÃO DE URL DE IMAGEM  ════════════════
+_IMG_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp")
+
+def _is_image_url(url: Optional[str]) -> bool:
+    """Verifica se a URL parece ser um link direto de imagem."""
+    if not url:
+        return False
+    u = url.lower().split("?")[0]   # ignora query string
+    return any(u.endswith(ext) for ext in _IMG_EXTS)
+
+
 # ════════════════════════  BUILDERS  ════════════════════════════
 
 def evento_embed(
@@ -85,11 +96,7 @@ def evento_embed(
 ) -> discord.Embed:
     """Embed para eventos gerais."""
 
-    desc = (
-        f"```\n{SEP_DUPLO}\n```\n"
-        f"{descricao}\n\n"
-        f"```\n{SEP_DUPLO}\n```"
-    )
+    desc = descricao
 
     em = discord.Embed(
         title=f"{Icon.EVENTO}  {titulo}",
@@ -98,11 +105,8 @@ def evento_embed(
         timestamp=_now_ts(),
     )
 
-    if banner_url:
+    if banner_url and _is_image_url(banner_url):
         em.set_image(url=banner_url)
-
-    em.add_field(
-        name=f"{Icon.CALENDARIO}  Início",
         value=f"```\n{data_inicio}\n```",
         inline=True,
     )
@@ -150,9 +154,8 @@ def gamejam_embed(
 ) -> discord.Embed:
     """Embed visual para Game Jams — o carro-chefe da Futaba."""
 
-    regras_fmt = "\n".join(
-        f"{Icon.REGRA}  {r}" for r in regras
-    )
+    # Regras: cada uma em linha própria com bullet, dentro de um code block
+    regras_fmt = "```\n" + "\n".join(f"• {r}" for r in regras) + "\n```"
 
     desc = (
         f"```ansi\n"
@@ -170,10 +173,8 @@ def gamejam_embed(
         timestamp=_now_ts(),
     )
 
-    if banner_url:
+    if banner_url and _is_image_url(banner_url):
         em.set_image(url=banner_url)
-
-    # Bloco principal de datas
     em.add_field(
         name=f"{Icon.CALENDARIO}  Período",
         value=(
@@ -197,8 +198,8 @@ def gamejam_embed(
 
     # Premiação em destaque
     em.add_field(
-        name=f"\n{SEP_ESTRELA}",
-        value="",
+        name=SEP_ESTRELA,
+        value="\u200b",
         inline=False,
     )
     em.add_field(

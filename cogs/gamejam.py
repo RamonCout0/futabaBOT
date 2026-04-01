@@ -223,8 +223,21 @@ class GameJam(commands.Cog, name="Game Jam"):
         link_itch = await self._ask(ctx, f"{Icon.LINK}  **Link itch.io** para submissão:", optional=True)
         if link_itch == "TIMEOUT": return
 
-        banner = await self._ask(ctx, f"{Icon.TEMA}  **URL do banner** (imagem):", optional=True)
+        banner = await self._ask(
+            ctx,
+            f"{Icon.TEMA}  **URL do banner** (imagem direta `.png/.jpg/.gif/.webp`):\n"
+            "⚠️  Precisa ser link **direto** da imagem, não a página onde ela está.\n"
+            "Dica: no Discord, clique na imagem → *Abrir original* e copie essa URL.",
+            optional=True,
+        )
         if banner == "TIMEOUT": return
+        if banner and not banner.lower().split("?")[0].endswith((".png", ".jpg", ".jpeg", ".gif", ".webp")):
+            await ctx.send(embed=erro_embed(
+                "A URL do banner não parece ser uma imagem direta — banner ignorado.\n"
+                "Use uma URL terminando em `.png`, `.jpg`, `.gif` ou `.webp`.",
+                self.bot.user,
+            ))
+            banner = None
 
         # ── Salvar ───────────────────────────────────────────────
         jid = _short_id()
@@ -339,7 +352,13 @@ class GameJam(commands.Cog, name="Game Jam"):
     @jam.command(name="encerrar")
     @commands.guild_only()
     @commands.has_permissions(manage_events=True)
-    async def jam_encerrar(self, ctx: commands.Context, jid: str):
+    async def jam_encerrar(self, ctx: commands.Context, jid: str = None):
+        if not jid:
+            await ctx.send(embed=erro_embed(
+                "Informe o ID da jam: `f!jam encerrar <ID>`\nVeja os IDs com `f!jam listar`.",
+                self.bot.user,
+            ))
+            return
         gdata = self._guild_jams(ctx.guild.id)
         jid = jid.upper()
         if not jid.startswith("JAM-"):
@@ -359,8 +378,8 @@ class GameJam(commands.Cog, name="Game Jam"):
     async def jam_resultado(
         self,
         ctx: commands.Context,
-        jid: str,
-        ouro: str,
+        jid: str = None,
+        ouro: str = None,
         prata: str = None,
         bronze: str = None,
     ):
@@ -368,6 +387,14 @@ class GameJam(commands.Cog, name="Game Jam"):
         Posta o resultado com pódio.
         Uso: f!jam resultado <ID> "Equipe Ouro" "Equipe Prata" "Equipe Bronze"
         """
+        if not jid or not ouro:
+            await ctx.send(embed=erro_embed(
+                'Uso: `f!jam resultado <ID> "1º lugar" "2º lugar" "3º lugar"`\n'
+                'Ex: `f!jam resultado JAM-D7CBA "Equipe Alfa" "Equipe Beta"`\n'
+                "Veja os IDs com `f!jam listar`.",
+                self.bot.user,
+            ))
+            return
         gdata = self._guild_jams(ctx.guild.id)
         jid = jid.upper()
         if not jid.startswith("JAM-"):

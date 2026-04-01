@@ -112,4 +112,4 @@ futaba/
 
 ---
 
-*Futaba Sakura · Gatuno de Estrelas*
+*Futaba Sakura · Comunidade Indie BR*

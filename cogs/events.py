@@ -17,7 +17,7 @@ from typing import Optional
 import uuid
 
 from utils.embeds import (
-    evento_embed, sucesso_embed, erro_embed, info_embed,
+    evento_embed, sucesso_embed, erro_embed, info_embed, aviso_embed,
     Icon, Color, SEP_LINHA, SEP_ESTRELA,
 )
 from utils.storage import get_store
@@ -174,8 +174,22 @@ class Events(commands.Cog, name="Eventos"):
         if local == "TIMEOUT": return
         if not local: local = "Servidor do Discord"
 
-        banner = await self._ask(ctx, f"{Icon.TEMA}  **URL do banner** (imagem):", optional=True)
+        banner = await self._ask(
+            ctx,
+            f"{Icon.TEMA}  **URL do banner** (imagem direta `.png/.jpg/.gif/.webp`):\n"
+            "⚠️  Precisa ser link **direto** da imagem, não a página onde ela está.\n"
+            "Dica: no Discord, clique na imagem → *Abrir original* e copie essa URL.",
+            optional=True,
+        )
         if banner == "TIMEOUT": return
+        # Validação: avisa se a URL não parece ser imagem direta
+        if banner and not banner.lower().split("?")[0].endswith((".png", ".jpg", ".jpeg", ".gif", ".webp")):
+            await ctx.send(embed=aviso_embed(
+                f"A URL do banner não parece ser uma imagem direta.\n"
+                f"O banner **não será exibido**. Para corrigir, refaça o evento com uma URL terminando em `.png`, `.jpg` etc.",
+                self.bot.user,
+            ))
+            banner = None
 
         link_insc = await self._ask(ctx, f"{Icon.INSCRICAO}  **Link de inscrição**:", optional=True)
         if link_insc == "TIMEOUT": return
@@ -260,7 +274,14 @@ class Events(commands.Cog, name="Eventos"):
 
     @evento.command(name="info")
     @commands.guild_only()
-    async def evento_info(self, ctx: commands.Context, eid: str):
+    async def evento_info(self, ctx: commands.Context, eid: str = None):
+        if not eid:
+            await ctx.invoke(self.evento_listar)
+            await ctx.send(embed=erro_embed(
+                "Informe o ID do evento: `f!evento info <ID>`\nVeja os IDs acima com `f!evento listar`.",
+                self.bot.user,
+            ))
+            return
         gdata = self._guild_events(ctx.guild.id)
         ev = gdata.get(eid.upper())
         if not ev:
@@ -284,7 +305,13 @@ class Events(commands.Cog, name="Eventos"):
     @evento.command(name="deletar")
     @commands.guild_only()
     @commands.has_permissions(manage_events=True)
-    async def evento_deletar(self, ctx: commands.Context, eid: str):
+    async def evento_deletar(self, ctx: commands.Context, eid: str = None):
+        if not eid:
+            await ctx.send(embed=erro_embed(
+                "Informe o ID do evento: `f!evento deletar <ID>`\nVeja os IDs com `f!evento listar`.",
+                self.bot.user,
+            ))
+            return
         gdata = self._guild_events(ctx.guild.id)
         eid = eid.upper()
         if eid not in gdata:
@@ -297,8 +324,14 @@ class Events(commands.Cog, name="Eventos"):
     @evento.command(name="ping")
     @commands.guild_only()
     @commands.has_permissions(manage_events=True)
-    async def evento_ping(self, ctx: commands.Context, eid: str):
+    async def evento_ping(self, ctx: commands.Context, eid: str = None):
         """Re-envia o embed do evento com menção de cargo."""
+        if not eid:
+            await ctx.send(embed=erro_embed(
+                "Informe o ID do evento: `f!evento ping <ID>`\nVeja os IDs com `f!evento listar`.",
+                self.bot.user,
+            ))
+            return
         gdata = self._guild_events(ctx.guild.id)
         ev = gdata.get(eid.upper())
         if not ev:

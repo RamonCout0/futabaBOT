@@ -38,11 +38,48 @@ def create_bot() -> commands.AutoShardedBot:
         max_messages=None,              # desliga cache de mensagens → menos RAM
         chunk_guilds_at_startup=False,  # não carrega members → menos RAM
         member_cache_flags=discord.MemberCacheFlags.none(),
+        case_insensitive=True,          # f!JAM == f!jam == f!Jam
     )
     return bot
 
 
 bot = create_bot()
+
+
+# ── Handler global de erros ──────────────────────────────────────
+@bot.event
+async def on_command_error(ctx: commands.Context, error):
+    # Argumento obrigatório não fornecido → mostra uso correto
+    if isinstance(error, commands.MissingRequiredArgument):
+        param = error.param.name
+        cmd   = ctx.command.qualified_name if ctx.command else ctx.invoked_with
+        dicas = {
+            "eid": f"Use `f!{cmd} <ID_DO_EVENTO>`\nEx: `f!{cmd} 50E956`\nVeja os IDs com `f!evento listar`",
+            "jid": f"Use `f!{cmd} <ID_DA_JAM>`\nEx: `f!{cmd} JAM-D7CBA`\nVeja os IDs com `f!jam listar`",
+        }
+        msg = dicas.get(param, f"Argumento obrigatório `{param}` não informado.")
+        em = discord.Embed(
+            description=f"❌  {msg}",
+            color=0xED4245,
+        )
+        await ctx.send(embed=em)
+        return
+
+    # Comando não encontrado → silencioso (evita spam no log)
+    if isinstance(error, commands.CommandNotFound):
+        return
+
+    # Permissão insuficiente
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send(embed=discord.Embed(
+            description="❌  Você não tem permissão para usar este comando.",
+            color=0xED4245,
+        ))
+        return
+
+    # Outros erros → loga normalmente
+    log.error(f"Erro no comando '{ctx.command}': {error}")
+    raise error
 
 
 # ── Carga de cogs ────────────────────────────────────────────────
